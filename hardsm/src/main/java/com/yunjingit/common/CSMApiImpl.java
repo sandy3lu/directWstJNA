@@ -14,10 +14,9 @@ public class CSMApiImpl {
     private byte[] large_buf;
 
     CSMApiImpl() throws IOException {
-        System.out.println(System.getProperty("user.dir"));
-        String path = new File(".").getCanonicalPath();
-        System.out.println(path);
-        this.solib = (CSMApi) Native.loadLibrary("yjsmwst", CSMApi.class);
+
+
+        this.solib = CSMApi.INSTANCE;
         this.normal_buf = new byte[NORMAL_BUF_SIZE];
         this.large_buf = new byte[LARGE_BUF_SIZE];
     }
