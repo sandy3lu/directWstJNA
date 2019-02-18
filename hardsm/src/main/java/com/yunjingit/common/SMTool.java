@@ -24,6 +24,11 @@ public class SMTool {
 //        String public_key = "c2922e404876182400623e0e254e1ea08f5d15245abb9032d85396ec70de9067abc3cbf58e9fa379753ba5ce8f00c75e93997be7fac501da35d025f87261b534";
 //        System.out.println(private_key.length() + "  "  + public_key.length());//64  128
 
+        System.out.printf("maxMemory = %x , freeMemory = %x, totalMemory = %x\n",Runtime.getRuntime().maxMemory(),
+                Runtime.getRuntime().freeMemory(),Runtime.getRuntime().totalMemory()) ; //最大可用内存，对应-Xmx
+
+
+
 
         IntByReference deviceNum = new IntByReference();
         int result = WstbApi.INSTANCE.SM_GetDeviceNum(deviceNum);
@@ -32,6 +37,10 @@ public class SMTool {
             System.out.println("not found the device");
             return;
         }
+
+        //if(testByCSM()) {
+        //    return;
+        //}
 
         String apiversion= WstbApi.INSTANCE.SM_GetAPIVersion();
         System.out.println("api version : " + apiversion);
@@ -48,7 +57,7 @@ public class SMTool {
         PointerByReference deviceHandle = new PointerByReference();
         result = WstbApi.INSTANCE.SM_OpenDevice(0,0,deviceHandle);
         if(result == WstbApi.SM_ERR_FREE) {
-            System.out.printf("SM_OpenDevice deviceHandle = %s \n", deviceHandle.getValue().toString());
+            System.out.printf("SM_OpenDevice deviceHandle success! \n");
 
             IntByReference list = new IntByReference();
 
@@ -65,7 +74,7 @@ public class SMTool {
             result = WstbApi.INSTANCE.SM_GetMechanismList(deviceHandle.getValue(),list,wMechanismNum);
             if(result == WstbApi.SM_ERR_FREE){
                 // puiMechanismList = 1537, wMechanismNum = 12
-                System.out.printf("SM_GetMechanismList puiMechanismList = %d, wMechanismNum = %d \n", list.getValue(), wMechanismNum.getValue());
+                System.out.printf("SM_GetMechanismList puiMechanismList = %x, wMechanismNum = %x \n", list.getValue(), wMechanismNum.getValue());
                 WstbApi.SM_MECHANISM_INFO.ByReference stMech = new WstbApi.SM_MECHANISM_INFO.ByReference();
                 result = WstbApi.INSTANCE.SM_GetMechanismInfo(deviceHandle.getValue(),list.getValue(),stMech);
                 if(result == WstbApi.SM_ERR_FREE){
@@ -263,7 +272,7 @@ public class SMTool {
 
 
                     /********SM2*******/
-                    
+
 
 
 
@@ -422,7 +431,18 @@ public class SMTool {
 
 
 
+    private static boolean testByCSM(){
+            byte[] buf = new byte[1024];
+            boolean result = false;
+            loginDevice(buf);
+            getStatus(buf);
 
+            testCrypto();
+
+            exitToken(buf);
+            result = true;
+            return  result;
+    }
 
 
 
@@ -520,13 +540,13 @@ public class SMTool {
         System.out.printf("private_key: %s\n", keypair.getPrivateKey());
     }
 
-//    static void printBytes(Sm.BytesValue bytes) {
-//        com.google.protobuf.ByteString value = bytes.getValue();
-//        byte[] data1 = value.toByteArray();
-//        String v = org.bouncycastle.pqc.math.linearalgebra.ByteUtils.toHexString(data1);
-//        System.out.printf("data_len: %ld\n", value.size());
-//        System.out.printf("encrypted data: %s\n", v);
-//    }
+    static void printBytes(Sm.BytesValue bytes) {
+        com.google.protobuf.ByteString value = bytes.getValue();
+        byte[] data1 = value.toByteArray();
+        String v = org.bouncycastle.pqc.math.linearalgebra.ByteUtils.toHexString(data1);
+        System.out.printf("data_len: %ld\n", value.size());
+        System.out.printf("encrypted data: %s\n", v);
+    }
 
     static void testCrypto(){
         System.out.println("---testCrypto");
@@ -534,7 +554,7 @@ public class SMTool {
 
         testDigest(buf);
 
-        testDigestSection(buf);
+        //testDigestSection(buf);
         testSm3Digest();
         testRandom(buf);
 
@@ -542,69 +562,69 @@ public class SMTool {
 
         //testDecrypt(buf, null, null);
 
-        //testGenerateKey(buf);
+        testGenerateKey(buf);
 
         testGenerateKeypair(buf);
     }
 
-//    private static Sm.BytesValue testDecrypt(byte[] buf, String key, String enctext) {
-//        System.out.println("---testDecrypt");
-//
-//        String encrypt_result = "eefb0602800038b355744473abe2a292eefb0602800038b355744473abe2a292eefb0602800038b355744473abe2a292eefb0602800038b355744473abe2a2921bda5859da7534a80121a1e79b859431";
-//        String hex_secret = "9353b0995d93c0b7f470deec26112172";
-//        if(key!=null){
-//            hex_secret = key;
-//            if(enctext ==null){
-//                System.out.println("need parameter [enctext]");
-//                return null;
-//            }
-//            encrypt_result = enctext;
-//        }
-//        byte[] data = ByteUtils.fromHexString(encrypt_result);
-//        int l = CSMApi.INSTANCE.api_decrypt(0,0,hex_secret.getBytes(),null,data,data.length,buf);
-//        Sm.Response response = null;
-//        try {
-//            response = ResponseUtils.processResponse(buf,l);
-//            Sm.BytesValue  bytes= response.getBytesValue();
-//            System.out.printf("decrypt result: %s\n", new String(bytes.getValue().toByteArray()));
-//            return bytes;
-//        } catch (SMException e) {
-//            e.printStackTrace();
-//        }
-//        return null;
-//
-//    }
+    private static Sm.BytesValue testDecrypt(byte[] buf, String key, String enctext) {
+        System.out.println("---testDecrypt");
 
-//    private static Sm.BytesValue testEncrypt(byte[] buf, String key, String plaintxt) {
-//        System.out.println("---testEncrypt");
-//
-//        String hex_secret = "9353b0995d93c0b7f470deec26112172";
-//        String origin_data = "0123456701234567012345670123456701234567012345670123456701234567";
-//        if(key!=null) {
-//            hex_secret = key;
-//            if(plaintxt ==null){
-//                System.out.println("need parameter [plaintxt]");
-//                return null;
-//            }
-//            origin_data = plaintxt;
-//        }
-//
-//
-//
-//        int l=CSMApi.INSTANCE.api_encrypt(0,0,hex_secret.getBytes(),null,origin_data.getBytes(),origin_data.getBytes().length,buf);
-//        Sm.Response response = null;
-//        try {
-//            response = ResponseUtils.processResponse(buf,l);
-//            Sm.BytesValue  bytesValue= response.getBytesValue();
-//            printBytes(bytesValue);
-//            return bytesValue;
-//        } catch (SMException e) {
-//            e.printStackTrace();
-//        }
-//
-//        return null;
-//
-//    }
+        String encrypt_result = "eefb0602800038b355744473abe2a292eefb0602800038b355744473abe2a292eefb0602800038b355744473abe2a292eefb0602800038b355744473abe2a2921bda5859da7534a80121a1e79b859431";
+        String hex_secret = "9353b0995d93c0b7f470deec26112172";
+        if(key!=null){
+            hex_secret = key;
+            if(enctext ==null){
+                System.out.println("need parameter [enctext]");
+                return null;
+            }
+            encrypt_result = enctext;
+        }
+        byte[] data = ByteUtils.fromHexString(encrypt_result);
+        int l = CSMApi.INSTANCE.api_decrypt(0,0,hex_secret.getBytes(),null,data,data.length,buf);
+        Sm.Response response = null;
+        try {
+            response = ResponseUtils.processResponse(buf,l);
+            Sm.BytesValue  bytes= response.getBytesValue();
+            System.out.printf("decrypt result: %s\n", new String(bytes.getValue().toByteArray()));
+            return bytes;
+        } catch (SMException e) {
+            e.printStackTrace();
+        }
+        return null;
+
+    }
+
+    private static Sm.BytesValue testEncrypt(byte[] buf, String key, String plaintxt) {
+        System.out.println("---testEncrypt");
+
+        String hex_secret = "9353b0995d93c0b7f470deec26112172";
+        String origin_data = "0123456701234567012345670123456701234567012345670123456701234567";
+        if(key!=null) {
+            hex_secret = key;
+            if(plaintxt ==null){
+                System.out.println("need parameter [plaintxt]");
+                return null;
+            }
+            origin_data = plaintxt;
+        }
+
+
+
+        int l=CSMApi.INSTANCE.api_encrypt(0,0,hex_secret.getBytes(),null,origin_data.getBytes(),origin_data.getBytes().length,buf);
+        Sm.Response response = null;
+        try {
+            response = ResponseUtils.processResponse(buf,l);
+            Sm.BytesValue  bytesValue= response.getBytesValue();
+            printBytes(bytesValue);
+            return bytesValue;
+        } catch (SMException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+
+    }
 
     private static void testGenerateKeypair(byte[] buf) {
         System.out.println("---testGenerateKeypair");
@@ -642,37 +662,37 @@ public class SMTool {
 
     }
 
-//    private static void testGenerateKey(byte[] buf) {
-//        System.out.println("---testGenerateKey");
-//
-//        int l = CSMApi.INSTANCE.api_generate_key(0,0,buf);
-//        Sm.Response response = null;
-//        try {
-//            response = ResponseUtils.processResponse(buf,l);
-//            String str = response.getStrValue().getValue();
-//            System.out.printf("secret key %s\n", str);
-//
-//            String origin_data = "0123456701234567012345670123456701234567012345670123456701234567";
-//            Sm.BytesValue encValue= testEncrypt(buf, str,origin_data);
-//            if(encValue ==null){
-//                return;
-//            }
-//            byte[] data = encValue.getValue().toByteArray();
-//
-//            Sm.BytesValue plainValue= testDecrypt(buf,str,new String(data));
-//            if(plainValue ==null){
-//                return;
-//            }
-//            byte[] plain = plainValue.getValue().toByteArray();
-//            String s = ByteUtils.toHexString(plain);
-//            System.out.printf("orires = %s \n result = %s \n", origin_data, s);
-//
-//        } catch (SMException e) {
-//            e.printStackTrace();
-//        }
-//
-//
-//    }
+    private static void testGenerateKey(byte[] buf) {
+        System.out.println("---testGenerateKey");
+
+        int l = CSMApi.INSTANCE.api_generate_key(0,0,buf);
+        Sm.Response response = null;
+        try {
+            response = ResponseUtils.processResponse(buf,l);
+            String str = response.getStrValue().getValue();
+            System.out.printf("secret key %s\n", str);
+
+            String origin_data = "0123456701234567012345670123456701234567012345670123456701234567";
+            Sm.BytesValue encValue= testEncrypt(buf, str,origin_data);
+            if(encValue ==null){
+                return;
+            }
+            byte[] data = encValue.getValue().toByteArray();
+
+            Sm.BytesValue plainValue= testDecrypt(buf,str,new String(data));
+            if(plainValue ==null){
+                return;
+            }
+            byte[] plain = plainValue.getValue().toByteArray();
+            String s = ByteUtils.toHexString(plain);
+            System.out.printf("orires = %s \n result = %s \n", origin_data, s);
+
+        } catch (SMException e) {
+            e.printStackTrace();
+        }
+
+
+    }
 
     private static void testRandom(byte[] buf) {
         System.out.println("---testRandom");
