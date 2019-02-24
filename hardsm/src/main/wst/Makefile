@@ -1,4 +1,4 @@
-LIB_DIR ?= ../resources
+LIB_DIR ?= .
 
 
 # --- configs ---
@@ -40,7 +40,7 @@ all: clean $(YJSMWST_LIB) demo
 
 # --- build libyjsmwst.so ---
 $(YJSMWST_LIB) : $(SM_OBJ) $(PROTO_OBJ) $(UTIL_OBJ) $(API_OBJ) | $(TARGET_DIR)
-	$(CC) -o $@ $^ -shared $(LIB_DIR)/libsmwst.so
+	$(CC) -o $@ $^ -shared libsmwstb.so
 	cp $(YJSMWST_LIB) $(LIB_DIR)/
 
 $(OUT_DIR)/%.o : util/%.c | $(OUT_DIR)
@@ -62,11 +62,11 @@ $(OUT_DIR) $(TARGET_DIR):
 # --- demo ---
 demo: smtest smtool
 
-smtest : $(SMTEST_OBJ) $(LIB_DIR)/libyjsmwst.so $(LIB_DIR)/libsmwst.so | $(TARGET_DIR)
+smtest : $(SMTEST_OBJ) libyjsmwst.so libsmwstb.so | $(TARGET_DIR)
 	$(CC) -o $(SM_TEST) $^
 	cp $(SM_TEST) $(LIB_DIR)
 
-smtool : $(SMTOOL_OBJ) $(LIB_DIR)/libyjsmwst.so $(LIB_DIR)/libsmwst.so | $(TARGET_DIR)
+smtool : $(SMTOOL_OBJ) libyjsmwst.so libsmwstb.so | $(TARGET_DIR)
 	$(CC) -o $(SM_TOOL) $^
 	cp $(SM_TOOL) $(LIB_DIR)
 
